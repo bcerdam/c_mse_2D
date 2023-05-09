@@ -95,6 +95,7 @@ float calculate_U_ij_m(double **image, int i, int j, int m, double r, int H, int
                 continue;
             }
             if (max_distance(m, image, i, j, a, b) <= r) {
+                // printf("%f %f \n", max_distance(m, image, i, j, a, b), r);
                 count++;
             }
         }
@@ -164,17 +165,20 @@ int main(int argc, char *argv[]) {
     int rows = atoi(argv[3]);
     int cols = atoi(argv[4]);
     int m = atoi(argv[5]);
-    int r = atoi(argv[6]);
-    
+    double r = atof(argv[6]);    
     double* n_values = malloc(scales * sizeof(double));
 
     for (int i = 1; i <= scales; i++) {
         double** coarse_data = coarse_graining(data, rows, cols, i);
         float U_m = calculate_U_m(coarse_data, m, r, rows/i, cols/i);
+        // printf("%f \n", U_m);
         float U_m_plus_one = calculate_U_m_plus_one(coarse_data, m, r, rows/i, cols/i);
         float n = negative_logarithm(U_m, U_m_plus_one);
         n_values[i-1] = n;
     }
+
+    
+    
 
     for (int i = 0; i < scales; i++) {
         printf("%f ", n_values[i]);
