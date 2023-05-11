@@ -87,5 +87,5 @@ def mse_2D(folder_path, scales, m, r):
 # Importante, tienes que cambiar el path de las imagenes al de tu computador y tienes que compilar de nuevo
 # Para compilar ocupa este comando: gcc mse_2D.c -o mse_2D -lm (En la terminal de la carpeta del repo)
 
-# v = mse_2D('/home/bcm/Desktop/Repo/mse_c/datos/2D/100x100', 20, 1, 0.5)
+# v = mse_2D('/home/bcm/Desktop/Repo/c_mse_2D/datos/2D/100x100', 20, 1, 0.5)
 # plot_arrays(v)

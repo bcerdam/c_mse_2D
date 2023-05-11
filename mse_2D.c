@@ -185,9 +185,6 @@ int main(int argc, char *argv[]) {
     }
     printf("\n");
 
-    // free(n_values);
-    // free(data[0]);
-    // free(data);
 
     return 0;
 }
