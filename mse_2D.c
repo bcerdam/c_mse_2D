@@ -50,6 +50,15 @@ double** read_csv(const char* filename) {
     return data;
 }
 
+double fuzzy_membership(double distance, double r) {
+    if (r == 0){
+        return 1;
+    }
+    else{
+        return expf(-powf(distance, 2.0) / powf(r, 2.0));
+    }
+}
+
 double** coarse_graining(double** arr, int rows, int cols, int scale_factor) {
     if (scale_factor == 1) {
         return arr;
@@ -87,16 +96,18 @@ double max_distance(int m, double **image, int i, int j, int a, int b) {
 }
 
 float calculate_U_ij_m(double **image, int i, int j, int m, double r, int H, int W) {
-    int count = 0;
+    double count = 0;
     int N_m = (H - m) * (W - m);
     for (int a = 0; a < H - m; a++) {
         for (int b = 0; b < W - m; b++) {
+            double dist = max_distance(m, image, i, j, a, b);
             if (a == i && b == j) {
                 continue;
             }
             if (max_distance(m, image, i, j, a, b) <= r) {
                 // printf("%f %f \n", max_distance(m, image, i, j, a, b), r);
-                count++;
+                // count++;
+                count += fuzzy_membership(dist, r);
             }
         }
     }
@@ -105,15 +116,17 @@ float calculate_U_ij_m(double **image, int i, int j, int m, double r, int H, int
 }
 
 float calculate_U_ij_m_plus_one(double **image, int i, int j, int m, double r, int H, int W) {
-    int count = 0;
+    double count = 0;
     int N_m = (H - m) * (W - m);
     for (int a = 0; a < H - m; a++) {
         for (int b = 0; b < W - m; b++) {
+            double dist = max_distance(m, image, i, j, a, b);
             if (a == i && b == j) {
                 continue;
             }
             if (max_distance(m, image, i, j, a, b) <= r) {
-                count++;
+                // count++;
+                count += fuzzy_membership(dist, r);
             }
         }
     }
