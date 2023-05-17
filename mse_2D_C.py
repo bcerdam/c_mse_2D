@@ -45,11 +45,13 @@ def image_to_array(image_path):
     return arr
 
 def run_c_program(csv_path, scales, rows, cols, m, r):
-    command = ['./mse_2D', csv_path, str(scales), str(rows), str(cols), str(m), str(r)]
+    # command = ['./mse_2D', csv_path, str(scales), str(rows), str(cols), str(m), str(r)]
+    command = ['mse_2D', csv_path, str(scales), str(rows), str(cols), str(m), str(r)]
     result = subprocess.run(command, stdout=subprocess.PIPE)
     output = result.stdout.decode('utf-8').strip()
     n_values = list(output.split())
-    n_values = [float(x) for x in n_values]
+    # n_values = [float(x) for x in n_values]
+    n_values = [np.inf if x == '1.#INF00' else float(x) for x in n_values]
     return n_values
 
 def mse_2D(folder_path, scales, m, r):
@@ -72,6 +74,14 @@ def mse_2D(folder_path, scales, m, r):
         print(execution_time)
 
     return mse_values
+
+def mse_2D_one_image(image_path, scales, m, r):
+    image_array = image_to_array(image_path)
+    rows, cols = image_array.shape
+
+    np.savetxt("output.csv", image_array, delimiter=",", fmt="%d")
+
+    return run_c_program('output.csv', scales, rows, cols, m, r*calculate_std('output.csv'))
 
 # Ejemplo:
 
