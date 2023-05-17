@@ -106,8 +106,8 @@ float calculate_U_ij_m(double **image, int i, int j, int m, double r, int H, int
             }
             if (max_distance(m, image, i, j, a, b) <= r) {
                 // printf("%f %f \n", max_distance(m, image, i, j, a, b), r);
-                // count++;
-                count += fuzzy_membership(dist, r);
+                count++;
+                // count += fuzzy_membership(dist, r);
             }
         }
     }
@@ -125,8 +125,8 @@ float calculate_U_ij_m_plus_one(double **image, int i, int j, int m, double r, i
                 continue;
             }
             if (max_distance(m, image, i, j, a, b) <= r) {
-                // count++;
-                count += fuzzy_membership(dist, r);
+                count++;
+                // count += fuzzy_membership(dist, r);
             }
         }
     }
