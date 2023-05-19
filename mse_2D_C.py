@@ -44,9 +44,9 @@ def image_to_array(image_path):
     arr = np.array(img)
     return arr
 
-def run_c_program(csv_path, scales, rows, cols, m, r):
-    # command = ['./mse_2D', csv_path, str(scales), str(rows), str(cols), str(m), str(r)]
-    command = ['mse_2D', csv_path, str(scales), str(rows), str(cols), str(m), str(r)]
+def run_c_program(csv_path, scales, rows, cols, m, r, delta, fuzzy):
+    # command = ['./mse_2D', csv_path, str(scales), str(rows), str(cols), str(m), str(r), str(delta), str(fuzzy)]
+    command = ['mse_2D', csv_path, str(scales), str(rows), str(cols), str(m), str(r), str(delta), str(fuzzy)]
     result = subprocess.run(command, stdout=subprocess.PIPE)
     output = result.stdout.decode('utf-8').strip()
     n_values = list(output.split())
@@ -54,7 +54,11 @@ def run_c_program(csv_path, scales, rows, cols, m, r):
     n_values = [np.inf if x == '1.#INF00' else float(x) for x in n_values]
     return n_values
 
-def mse_2D(folder_path, scales, m, r):
+def mse_2D(folder_path, scales, m, r, delta, fuzzy=False):
+    if fuzzy == False:
+        fuzzy = 0
+    elif fuzzy == True:
+        fuzzy = 1
     mse_values = []
     for filename in os.listdir(folder_path):
         file_path = os.path.join(folder_path, filename)
@@ -67,7 +71,7 @@ def mse_2D(folder_path, scales, m, r):
         print('Working on: ', filename)
         start_time = time.time()
 
-        mse_values.append([filename, run_c_program('output.csv', scales, rows, cols, m, r*calculate_std('output.csv'))])
+        mse_values.append([filename, run_c_program('output.csv', scales, rows, cols, m, r*calculate_std('output.csv'), delta, fuzzy)])
 
         end_time = time.time()
         execution_time = end_time - start_time
@@ -95,7 +99,7 @@ def mse_2D_one_image(image_path, scales, m, r):
 # En el ejemplo de abajo son imagenes chicas de 100x100, por eso hay que ponerle m=1 y r=0.5, pero con imagenes mas grandes la idea es ocupar m=2 y r=0.25
 
 # Importante, tienes que cambiar el path de las imagenes al de tu computador y tienes que compilar de nuevo
-# Para compilar ocupa este comando: gcc mse_2D.c -o mse_2D -lm (En la terminal de la carpeta del repo)
+# Para compilar ocupa este comando: gcc mse_2D.c -o mse_2D -lm -fopenmp
 
-# v = mse_2D('/home/bcm/Desktop/Repo/c_mse_2D/datos/2D/100x100', 20, 1, 0.5)
+# v = mse_2D('/home/bcm/Desktop/Repo/c_mse_2D/datos/2D/100x100', 20, 1, 0.5, 0.8, fuzzy=False)
 # plot_arrays(v)
