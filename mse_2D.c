@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <omp.h>
 
 double** read_csv(const char* filename) {
     double** data = NULL;
@@ -50,14 +51,6 @@ double** read_csv(const char* filename) {
     return data;
 }
 
-double fuzzy_membership(double distance, double r) {
-    if (r == 0){
-        return 1;
-    }
-    else{
-        return expf(-powf(distance, 2.0) / powf(r, 2.0));
-    }
-}
 
 double** coarse_graining(double** arr, int rows, int cols, int scale_factor) {
     if (scale_factor == 1) {
@@ -95,66 +88,100 @@ double max_distance(int m, double **image, int i, int j, int a, int b) {
     return max_dist;
 }
 
-float calculate_U_ij_m(double **image, int i, int j, int m, double r, int H, int W) {
-    double count = 0;
-    int N_m = (H - m) * (W - m);
-    for (int a = 0; a < H - m; a++) {
-        for (int b = 0; b < W - m; b++) {
-            // double dist = max_distance(m, image, i, j, a, b);
-            if (a == i && b == j) {
-                continue;
-            }
-            if (max_distance(m, image, i, j, a, b) <= r) {
-                // printf("%f %f \n", max_distance(m, image, i, j, a, b), r);
-                count++;
-                // count += fuzzy_membership(dist, r);
-            }
-        }
+double fuzzy_membership(double distance, double r, double delta) {
+    if (r == 0){
+        return 1;
     }
-    // printf("Um %d: \n", count / (N_m-1));
-    return (float) count / (N_m-1);
+    else{
+        return expf(powf(distance, 2) * log(delta) / powf(r, 2.0));
+    }
 }
 
-float calculate_U_ij_m_plus_one(double **image, int i, int j, int m, double r, int H, int W) {
+float calculate_U_ij_m(double **image, int i, int j, int m, double r, int H, int W, double delta, int fuzzy) {
     double count = 0;
     int N_m = (H - m) * (W - m);
     for (int a = 0; a < H - m; a++) {
         for (int b = 0; b < W - m; b++) {
-            // double dist = max_distance(m, image, i, j, a, b);
+            double dist = max_distance(m, image, i, j, a, b);
             if (a == i && b == j) {
                 continue;
             }
-            if (max_distance(m+1, image, i, j, a, b) <= r) {
-                count++;
-                // count += fuzzy_membership(dist, r);
+            else{
+                if (fuzzy == 0){
+                    if (dist <= r){
+                        count ++;
+                    }
+                }
+                else if (fuzzy == 1){
+                    count += fuzzy_membership(dist, r, delta);
+                }
             }
         }
     }
     return (float) count / (N_m-1);
 }
 
-
-float calculate_U_m(double **image, int m, double r, int H, int W) {
-    float sum = 0.0;
-    for (int i = 0; i < H - m; i++) {
-        for (int j = 0; j < W - m; j++) {
-            sum += calculate_U_ij_m(image, i, j, m, r, H, W);
+float calculate_U_ij_m_plus_one(double **image, int i, int j, int m, double r, int H, int W, double delta, int fuzzy) {
+    double count = 0;
+    int N_m = (H - m) * (W - m);
+    for (int a = 0; a < H - m; a++) {
+        for (int b = 0; b < W - m; b++) {
+            double dist = max_distance(m+1, image, i, j, a, b);
+            if (a == i && b == j) {
+                continue;
+            }
+            else{
+                if (fuzzy == 0){
+                    if (dist <= r){
+                        count ++;
+                    }
+                }
+                else if (fuzzy == 1){
+                    count += fuzzy_membership(dist, r, delta);
+                }
+            }
         }
     }
-    // printf("Um %f: \n", sum / ((H - m) * (W - m)));
-    return sum / ((H - m) * (W - m));
+    return (float) count / (N_m-1);
 }
 
 
-float calculate_U_m_plus_one(double **image, int m, double r, int H, int W) {
+float calculate_U_m(double **image, int m, double r, int H, int W, double delta, int fuzzy) {
     float sum = 0.0;
+    #pragma omp parallel for reduction(+:sum) num_threads(32)
     for (int i = 0; i < H - m; i++) {
         for (int j = 0; j < W - m; j++) {
-            sum += calculate_U_ij_m_plus_one(image, i, j, m, r, H, W);
+            sum += calculate_U_ij_m(image, i, j, m, r, H, W, delta, fuzzy);
         }
     }
-    // printf("Ump %f: \n", sum / ((H - m) * (W - m)));
-    return sum / ((H - m) * (W - m));
+    #pragma omp barrier
+    float average;
+    #pragma omp critical
+    {
+        average = sum / ((H - m) * (W - m));
+    }
+    return average;
+    // return sum / ((H - m) * (W - m));
+}
+
+
+float calculate_U_m_plus_one(double **image, int m, double r, int H, int W, double delta, int fuzzy) {
+    float sum = 0.0;
+    #pragma omp parallel for reduction(+:sum) num_threads(32)
+    for (int i = 0; i < H - m; i++) {
+        for (int j = 0; j < W - m; j++) {
+            sum += calculate_U_ij_m_plus_one(image, i, j, m, r, H, W, delta, fuzzy);
+        }
+    }
+    #pragma omp barrier
+    float average;
+    #pragma omp critical
+    {
+        average = sum / ((H - m) * (W - m));
+    }
+    return average;
+
+    // return sum / ((H - m) * (W - m));
 }
 
 
@@ -177,14 +204,17 @@ int main(int argc, char *argv[]) {
     int rows = atoi(argv[3]);
     int cols = atoi(argv[4]);
     int m = atoi(argv[5]);
-    double r = atof(argv[6]);    
+    double r = atof(argv[6]);
+    double delta = atof(argv[7]);
+    int fuzzy = atoi(argv[8]);
+
+
     double* n_values = malloc(scales * sizeof(double));
 
     for (int i = 1; i <= scales; i++) {
         double** coarse_data = coarse_graining(data, rows, cols, i);
-        float U_m = calculate_U_m(coarse_data, m, r, rows/i, cols/i);
-        // printf("%f \n", U_m);
-        float U_m_plus_one = calculate_U_m_plus_one(coarse_data, m, r, rows/i, cols/i);
+        float U_m = calculate_U_m(coarse_data, m, r, rows/i, cols/i, delta, fuzzy);
+        float U_m_plus_one = calculate_U_m_plus_one(coarse_data, m, r, rows/i, cols/i, delta, fuzzy);
         float n = negative_logarithm(U_m, U_m_plus_one);
         n_values[i-1] = n;
     }
