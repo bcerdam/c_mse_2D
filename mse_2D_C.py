@@ -44,9 +44,9 @@ def image_to_array(image_path):
     arr = np.array(img)
     return arr
 
-def run_c_program(csv_path, scales, rows, cols, m, r, delta, fuzzy):
-    # command = ['./mse_2D', csv_path, str(scales), str(rows), str(cols), str(m), str(r), str(delta), str(fuzzy)]
-    command = ['mse_2D', csv_path, str(scales), str(rows), str(cols), str(m), str(r), str(delta), str(fuzzy)]
+def run_c_program(csv_path, scales, rows, cols, m, r, delta, fuzzy, distance_type):
+    # command = ['./mse_2D', csv_path, str(scales), str(rows), str(cols), str(m), str(r), str(delta), str(fuzzy), str(distance_type)]
+    command = ['mse_2D', csv_path, str(scales), str(rows), str(cols), str(m), str(r), str(delta), str(fuzzy), str(distance_type)]
     result = subprocess.run(command, stdout=subprocess.PIPE)
     output = result.stdout.decode('utf-8').strip()
     n_values = list(output.split())
@@ -54,7 +54,7 @@ def run_c_program(csv_path, scales, rows, cols, m, r, delta, fuzzy):
     n_values = [np.inf if x == '1.#INF00' else float(x) for x in n_values]
     return n_values
 
-def mse_2D(folder_path, scales, m, r, delta, fuzzy=False):
+def mse_2D(folder_path, scales, m, r, delta, fuzzy=False, distance_type=0):
     if fuzzy == False:
         fuzzy = 0
     elif fuzzy == True:
@@ -71,7 +71,7 @@ def mse_2D(folder_path, scales, m, r, delta, fuzzy=False):
         print('Working on: ', filename)
         start_time = time.time()
 
-        mse_values.append([filename, run_c_program('output.csv', scales, rows, cols, m, r*calculate_std('output.csv'), delta, fuzzy)])
+        mse_values.append([filename, run_c_program('output.csv', scales, rows, cols, m, r*calculate_std('output.csv'), delta, fuzzy, distance_type)])
 
         end_time = time.time()
         execution_time = end_time - start_time
